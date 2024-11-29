@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Table Management</title>
+    <style>
+        table {
+            width: 80%;
+            border-collapse: collapse;
+            margin: 20px auto;
+            font-family: Arial, sans-serif;
+        }
+        tr {
+            background-color: #f4f4f4;
+            text-align: left;
+        }
+        th, td {
+            padding: 10px;
+            border: 1px solid #ddd;
+        }
+        tr.changed {
+            background-color: #c8e6c9; /* Light green to mark changes */
+            transition: background-color 1s ease;
+        }
+        button {
+            padding: 5px 10px;
+            margin: 2px;
+            cursor: pointer;
+        }
+        button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+        .change{
+            display: flex;
+            justify-content: center;
+        }
+        .back{
+            width: 100px;
+            height: 40px;
+            background: blue;
+            color: white;
+            text-decoration: none;
+            text-align: center;
+            border: none;
+            border-radius: 15px;
+
+        }
+        .atag{
+        color: white;
+        text-decoration: none;
+        }
+    </style>
+</head>
+<body>
+    <table>
+        <tr>
+            <th>Name</th>
+            <th>Age</th>
+            <th>Phone Number</th>
+            <th>Email</th>
+            <th>Actions</th>
+        </tr>
+        ${tabledata} <!-- Placeholder for dynamic table rows -->
+    </table>
+    <div class="change">
+        <button class="back"><a class="atag" href="/home">Go back</a></button>
+    </div>
+    
+    
+
+
+
+     
+    <script>
+        function editRow(index) {
+            const row = document.querySelector(`tr[data-id="${index}"]`);
+            if (!row) return;
+
+            const cells = row.querySelectorAll("td");
+            cells[0].innerHTML = `<input type="text" value="${cells[0].innerText}" id="editName${index}" />`;
+            cells[1].innerHTML = `<input type="number" value="${cells[1].innerText}" id="editAge${index}" />`;
+            cells[2].innerHTML = `<input type="text" value="${cells[2].innerText}" id="editNumber${index}" />`;
+            cells[3].innerHTML = `<input type="email" value="${cells[3].innerText}" id="editMail${index}" />`;
+
+            const editButton = row.querySelector("button:first-child");
+            editButton.textContent = "Save";
+            editButton.onclick = () => saveRow(index);
+
+            const deleteButton = row.querySelector("button:last-child");
+            deleteButton.disabled = true;
+        }
+
+        function saveRow(index) {
+            const name = document.getElementById(`editName${index}`).value;
+            const age = document.getElementById(`editAge${index}`).value;
+            const number = document.getElementById(`editNumber${index}`).value;
+            const mail = document.getElementById(`editMail${index}`).value;
+
+            fetch("/update", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ index, name, age, number, mail })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.message === "Data updated successfully") {
+                    alert(data.message);
+
+                    const row = document.querySelector(`tr[data-id="${index}"]`);
+                    const cells = row.querySelectorAll("td");
+                    cells[0].innerText = name;
+                    cells[1].innerText = age;
+                    cells[2].innerText = number;
+                    cells[3].innerText = mail;
+
+                    const editButton = row.querySelector("button:first-child");
+                    editButton.textContent = "Edit";
+                    editButton.onclick = () => editRow(index);
+
+                    const deleteButton = row.querySelector("button:last-child");
+                    deleteButton.disabled = false;
+
+                    row.classList.add("changed");
+                    setTimeout(() => row.classList.remove("changed"), 1000);
+                } else {
+                    alert("Failed to update data");
+                }
+            })
+            .catch(error => console.error("Error updating data:", error));
+        }
+
+        function deleteRow(index) {
+            if (!confirm("Are you sure you want to delete this entry?")) return;
+
+            fetch("/delete", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ index })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.message === "Data deleted successfully") {
+                    alert(data.message);
+                    window.location.reload();
+                } else {
+                    alert("Failed to delete data");
+                }
+            })
+            .catch(error => console.error("Error deleting data:", error));
+        }
+    </script>
+</body>
+</html>
